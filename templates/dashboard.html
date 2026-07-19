@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CacaoScan - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+
+    <div class="app-layout">
+        <aside id="sidebar-ui" class="app-sidebar collapsed">
+            <div class="brand">
+                <h2>CacaoScan</h2>
+            </div>
+            <nav class="menu">
+                <a href="#" id="menu-inicio" class="menu-item active" onclick="mostrarVista('inicio')">🏠 Inicio</a>
+                <a href="#" id="menu-historial" class="menu-item" onclick="mostrarVista('historial')">📊 Historial</a>
+                <a href="#" id="menu-perfil" class="menu-item" onclick="mostrarVista('perfil')">👤 Perfil ({{ user_type }})</a>
+                <a href="#" id="menu-configuracion" class="menu-item" onclick="mostrarVista('configuracion')">⚙️ Configuración</a>
+                <a href="/" class="menu-item exit-btn">Salir</a>
+            </nav>
+        </aside>
+
+        <main class="app-body">
+
+            <div id="vista-inicio">
+                <header class="body-header">
+                    <h2>Panel Fitosanitario</h2>
+                </header>
+
+                <div class="metrics-container">
+                    <div class="metrics-grid">
+                        <div class="kpi-card">
+                            <span class="kpi-title">Total Procesados</span>
+                            <h3 id="m-total" class="kpi-value neon-blue">0</h3>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Alertas Activas</span>
+                            <h3 id="m-alertas" class="kpi-value neon-orange">0</h3>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-title">Muestras Sanas</span>
+                            <h3 id="m-sanos" class="kpi-value neon-green">0</h3>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <span class="kpi-title">Estado Fitosanitario Activo</span>
+                        <div class="chart-wrapper">
+                            <canvas id="chartCacao"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="board-action">
+                    <input type="file" id="file-input" accept="image/*" class="display-none" onchange="procesarArchivoSubido()">
+                    <div class="uploader-zone" onclick="document.getElementById('file-input').click()">
+                        <span class="icon-big">📸</span>
+                        <h3>Subir foto del fruto de cacao</h3>
+                        <p>Presione para seleccionar una muestra física real</p>
+                    </div>
+                </section>
+
+                <div id="loading-indicator" class="loading-box display-none">
+                    <div class="spinner"></div>
+                    <p style="color: var(--color-emerald); font-weight: 600;">🌿 Analizando muestras con Deep Learning...</p>
+                </div>
+
+                <section id="panel-resultados" class="panel-box display-none">
+                    <div class="panel-box-header">
+                        <h3>Resultados del Diagnóstico de Precisión</h3>
+                        <button class="btn-capsule" onclick="descargarReportePDF()">Descargar Reporte</button>
+                    </div>
+                    <div class="panel-box-body split-container">
+                        <div class="preview-column">
+                            <h5 style="margin-top:0; color: var(--color-text-muted);">Vista Previa:</h5>
+                            <div class="preview-wrapper">
+                                <div id="laser-scanner" class="scanner-bar"></div>
+                                <img id="img-preview" src="" alt="Vista previa del cacao" class="image-render-box">
+                            </div>
+                        </div>
+                        <div class="info-column">
+                            <div class="row-result">
+                                <span id="r-diagnostico" class="label-badge">Analizando...</span>
+                                <span id="r-confianza" class="sub-text">0% Confianza</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                            </div>
+                            <p style="font-size:0.85rem; color:var(--color-text-muted);">Archivo: <strong id="r-archivo-nombre" style="color:white;">-</strong></p>
+                            <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom: 1.5rem;">Resolución de Matriz: <strong id="r-resolucion" style="color:white;">0x0 px</strong></p>
+                            
+                            <div class="box-advice">
+                                <h5>Acciones Inmediatas de Manejo Agrónomo:</h5>
+                                <ul id="r-recomendaciones"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="vista-historial" class="display-none">
+                <header class="body-header">
+                    <h2>Historial de Análisis Clínicos</h2>
+                    <div style="display: flex; gap: 0.8rem; align-items: center;">
+                        <button class="btn-capsule" onclick="ordenarHistorialBurbujaCliente()">Ordenar por Certeza</button>
+                        <a href="/descargar_txt" class="btn-capsule-emerald-link">Descargar Logs (.txt)</a>
+                        <button id="btn-borrar-historial" class="btn-capsule-red">Borrar Historial</button>
+                    </div>
+                </header>
+                
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Buscar por diagnóstico o nombre de archivo..." onkeyup="ejecutarBusquedaSecuencial()">
+                </div>
+
+                <section class="panel-box">
+                    <div style="overflow-x: auto;">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Archivo</th>
+                                    <th>Diagnóstico</th>
+                                    <th>Certeza</th>
+                                    <th>Matriz dimensional</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-history-body">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--color-text-muted);">No se registran análisis en esta sesión.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div id="vista-perfil" class="display-none">
+                <header class="body-header">
+                    <h2>Mi Perfil de Usuario</h2>
+                </header>
+                <section class="panel-box" style="max-width: 500px; margin: 0 auto; text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">👤</div>
+                    <h3 id="lbl-tipo-usuario" style="margin: 0 0 2rem 0; color: var(--color-emerald);">{{ user_type }}</h3>
+                    <div class="input-flat-group" style="text-align: left;">
+                        <label>NOMBRE COMPLETO</label>
+                        <input type="text" id="txt-perfil-nombre" value="{% if user_type == 'Invitado' %}Usuario Invitado{% else %}Productor Fitosanitario Villarreal{% endif %}">
+                    </div>
+                    <div class="input-flat-group" style="text-align: left; margin-top: 1.5rem;">
+                        <label>CORREO ELECTRÓNICO</label>
+                        <input type="email" id="txt-perfil-correo" value="{% if user_type == 'Invitado' %}invitado@cacaoscan.app{% else %}productor@cacaoscan.app{% endif %}">
+                    </div>
+                    <button type="button" class="btn-solid" style="margin-top: 2rem;" onclick="alert('Perfil guardado con éxito.')">Guardar Cambios</button>
+                </section>
+            </div>
+
+            <div id="vista-configuracion" class="display-none">
+                <header class="body-header">
+                    <h2>Configuración</h2>
+                </header>
+                
+                <section class="panel-box" style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <div class="config-group">
+                        <div class="config-group-header">
+                            <span>Historial</span>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-text">
+                                <h4>Guardar imágenes</h4>
+                                <p>Guarda una copia de las fotos para verlas en la tabla de registros.</p>
+                            </div>
+                            <label class="switch-ui">
+                                <input type="checkbox" id="config-guardar-fotos" checked onchange="guardarPreferenciaLocal('cfg_fotos', this.checked)">
+                                <span class="slider-ui"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-header">
+                            <span>Internet</span>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-text">
+                                <h4>Modo offline</h4>
+                                <p>Activa el uso local para trabajar en el campo sin gastar datos.</p>
+                            </div>
+                            <label class="switch-ui">
+                                <input type="checkbox" id="config-modo-offline" onchange="cambiarModoOffline(this.checked)">
+                                <span class="slider-ui"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-group-header">
+                            <span>Modelo IA</span>
+                        </div>
+                        <div class="config-row">
+                            <div class="config-text">
+                                <h4>Tamaño de la foto</h4>
+                                <p>Elige la resolución con la que trabajará la matriz del sistema.</p>
+                            </div>
+                            <select id="config-calidad-imagen" class="select-flat" onchange="guardarPreferenciaLocal('cfg_calidad', this.value)">
+                                <option value="128px">128px (Matriz Baja)</option>
+                                <option value="224px" selected>224px (Matriz Estándar)</option>
+                                <option value="299px">299px (Matriz Alta)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

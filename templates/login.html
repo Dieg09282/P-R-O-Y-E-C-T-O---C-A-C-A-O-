@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CacaoScan - Autenticación</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+
+    <div class="auth-card">
+        <div class="auth-sidebar-info">
+            <h1>CacaoScan</h1>
+            <p>Control fitosanitario de precisión impulsado por Deep Learning.</p>
+        </div>
+
+        <div class="auth-form-area">
+            <div class="auth-toggle-tabs">
+                <button id="tab-login" class="active" onclick="cambiarPestaña('login')">Ingresar</button>
+                <button id="tab-register" onclick="cambiarPestaña('register')">Registrarse</button>
+            </div>
+
+            <form id="form-login" action="/dashboard" method="GET">
+                <div class="input-flat-group">
+                    <label>CORREO ELECTRÓNICO</label>
+                    <input type="email" placeholder="productor@ejemplo.com" required>
+                </div>
+                <div class="input-flat-group">
+                    <label>CONTRASEÑA</label>
+                    <input type="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-solid">Iniciar Sesión</button>
+            </form>
+
+            <form id="form-register" class="display-none" action="/dashboard" method="GET">
+                <div class="input-flat-group">
+                    <label>NOMBRE COMPLETO</label>
+                    <input type="text" placeholder="Juan Pérez">
+                </div>
+                <div class="input-flat-group">
+                    <label>CORREO ELECTRÓNICO</label>
+                    <input type="email" placeholder="nuevo@ejemplo.com">
+                </div>
+                <div class="input-flat-group">
+                    <label>CONTRASEÑA</label>
+                    <input type="password" placeholder="Crear contraseña">
+                </div>
+                <button type="submit" class="btn-solid">Crear Cuenta</button>
+            </form>
+
+            <a href="/dashboard?user=Invitado" class="btn-flat-link">Entrar como Invitado</a>
+        </div>
+    </div>
+
+    <script>
+        function cambiarPestaña(tipo) {
+            const fLogin = document.getElementById('form-login');
+            const fRegister = document.getElementById('form-register');
+            const tLogin = document.getElementById('tab-login');
+            const tRegister = document.getElementById('tab-register');
+
+            if (tipo === 'login') {
+                fLogin.classList.remove('display-none');
+                fRegister.classList.add('display-none');
+                tLogin.classList.add('active');
+                tRegister.classList.remove('active');
+            } else {
+                fLogin.classList.add('display-none');
+                fRegister.classList.remove('display-none');
+                tLogin.classList.remove('active');
+                tRegister.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
